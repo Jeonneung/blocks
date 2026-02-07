@@ -26,6 +26,7 @@ import LinkEmbedEditor from './blocks/LinkEmbedEditor';
 import DialogueEditor from './blocks/DialogueEditor';
 import DividerEditor from './blocks/DividerEditor';
 import CodeBlockEditor from './blocks/CodeBlockEditor';
+import { importFile, getAcceptString } from './importers';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import {
   DndContext,
@@ -349,6 +350,98 @@ export default function BlockEditor({
   const blockRefs = React.useRef<Map<string, HTMLDivElement>>(new Map());
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const pendingFocusRef = useRef<{ blockId: string; position: 'start' | 'end' } | null>(null);
+
+  // 전체 선택 활성 플래그 (state 아닌 ref → 동기적, 타이밍 이슈 없음)
+  const selectAllActiveRef = useRef(false);
+
+  // ref 미러: useEffect([]) 핸들러에서 최신 상태를 동기적으로 읽기 위함
+  const selectedBlocksRef = useRef<Set<string>>(new Set());
+  const blocksRef = useRef<Block[]>(blocks);
+  selectedBlocksRef.current = selectedBlocks;
+  blocksRef.current = blocks;
+
+  // 블록 선택 상태에서 Delete/Backspace 처리 — 의존성 없는 단일 핸들러(등록 1회)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isSelectAll = selectAllActiveRef.current;
+      const selected = selectedBlocksRef.current;
+      if (!isSelectAll && selected.size === 0) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'Enter') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        selectAllActiveRef.current = false;
+        setBlocks([createEmptyParagraphBlock()]);
+        setSelectedBlocks(new Set());
+        setTimeout(() => {
+          const el = editorContainerRef.current?.querySelector('[data-block-id] [contenteditable="true"]') as HTMLElement;
+          el?.focus();
+        }, 50);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'x') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const text = blocksRef.current
+          .filter(b => isSelectAll || selected.has(b.id))
+          .map(b => {
+            if ('content' in b && Array.isArray((b as { content?: unknown }).content))
+              return ((b as ParagraphBlock).content).map(n => n.text).join('');
+            if (b.type === 'code') return (b as CodeBlock).code;
+            if (b.type === 'divider') return '---';
+            return '';
+          }).join('\n');
+        navigator.clipboard.writeText(text).catch(() => {});
+        selectAllActiveRef.current = false;
+        setBlocks([createEmptyParagraphBlock()]);
+        setSelectedBlocks(new Set());
+        setTimeout(() => {
+          const el = editorContainerRef.current?.querySelector('[data-block-id] [contenteditable="true"]') as HTMLElement;
+          el?.focus();
+        }, 50);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const text = blocksRef.current
+          .filter(b => isSelectAll || selected.has(b.id))
+          .map(b => {
+            if ('content' in b && Array.isArray((b as { content?: unknown }).content))
+              return ((b as ParagraphBlock).content).map(n => n.text).join('');
+            if (b.type === 'code') return (b as CodeBlock).code;
+            if (b.type === 'divider') return '---';
+            return '';
+          }).join('\n');
+        navigator.clipboard.writeText(text).catch(() => {});
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        selectAllActiveRef.current = false;
+        setSelectedBlocks(new Set());
+        return;
+      }
+      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        selectAllActiveRef.current = false;
+        const newId = generateBlockId();
+        setBlocks([{ id: newId, type: 'paragraph', content: [{ text: e.key }] } as ParagraphBlock]);
+        setSelectedBlocks(new Set());
+        pendingFocusRef.current = { blockId: newId, position: 'end' };
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, []);
 
   // 크로스 블록 드래그 선택 추적용
   const selStartRef = useRef<{ blockId: string; node: Node; offset: number } | null>(null);
@@ -697,6 +790,30 @@ export default function BlockEditor({
     [insertIndex],
   );
 
+  // 파일 가져오기
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const result = await importFile(file);
+    if (result.blocks.length > 0) {
+      setBlocks((prev) => {
+        const newBlocks = [...prev];
+        newBlocks.splice(insertIndex + 1, 0, ...result.blocks);
+        return newBlocks;
+      });
+    }
+
+    // 같은 파일 재선택 허용
+    e.target.value = '';
+  }, [insertIndex]);
+
   // 이전 블록과 병합 (Backspace 처리)
   const handleMergeWithPrevious = useCallback((index: number) => {
     if (index <= 0) return;
@@ -880,6 +997,9 @@ export default function BlockEditor({
 
   // 블록 선택 핸들러
   const handleBlockSelect = useCallback((index: number, e: React.MouseEvent) => {
+    // 클릭 시 전체 선택 모드 해제
+    selectAllActiveRef.current = false;
+
     // 블록 내부의 contentEditable 클릭 시에는 선택 무시
     const target = e.target as HTMLElement;
     if (target.closest('[contenteditable="true"]') || target.closest('input') || target.closest('textarea')) {
@@ -916,20 +1036,6 @@ export default function BlockEditor({
       setLastSelectedIndex(index);
     }
   }, [blocks, selectedBlocks, lastSelectedIndex]);
-
-  // 선택된 블록 삭제
-  const handleDeleteSelected = useCallback(() => {
-    if (selectedBlocks.size === 0) return;
-
-    setBlocks((prev) => {
-      const filtered = prev.filter((block) => !selectedBlocks.has(block.id));
-      if (filtered.length === 0) {
-        return [createEmptyParagraphBlock()];
-      }
-      return filtered;
-    });
-    setSelectedBlocks(new Set());
-  }, [selectedBlocks]);
 
   // 크로스 블록 선택 삭제 처리
   const handleCrossBlockDelete = useCallback((crossSel: CrossBlockSelection, insertChar?: string) => {
@@ -1013,39 +1119,17 @@ export default function BlockEditor({
     }, 0);
   }, []);
 
-  // 선택된 블록 삭제 후 첫 번째 블록에 포커스
-  const focusFirstBlock = useCallback(() => {
-    setTimeout(() => {
-      const firstBlock = editorContainerRef.current?.querySelector('[data-block-id]');
-      const editable = firstBlock?.querySelector('[contenteditable="true"]') as HTMLElement;
-      editable?.focus();
-    }, 0);
-  }, []);
-
-  // 선택된 블록을 plain text로 직렬화
-  const serializeSelectedBlocks = useCallback(() => {
-    return blocks
-      .filter(b => selectedBlocks.has(b.id))
-      .map(b => {
-        if ('content' in b && Array.isArray((b as { content?: unknown }).content)) {
-          return ((b as ParagraphBlock).content as TextNode[]).map(n => n.text).join('');
-        }
-        if (b.type === 'divider') return '---';
-        return '';
-      })
-      .join('\n');
-  }, [blocks, selectedBlocks]);
-
-  // 전역 키보드 이벤트 (Cmd+A, 블록 선택 동작, 크로스 블록 선택 삭제)
+  // 전역 키보드 이벤트 (Cmd+A 에스컬레이팅, 크로스 블록 선택 삭제)
   useEffect(() => {
     const container = editorContainerRef.current;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // --- Cmd+A: 에스컬레이팅 전체 선택 ---
       if ((e.metaKey || e.ctrlKey) && e.key === 'a' && container) {
-        // 이미 블록 선택 모드 → 전체 블록 선택
+        // 이미 블록 선택 모드 → 전체 선택 활성화
         if (selectedBlocks.size > 0) {
           e.preventDefault();
+          selectAllActiveRef.current = true;
           setSelectedBlocks(new Set(blocks.map(b => b.id)));
           return;
         }
@@ -1056,6 +1140,7 @@ export default function BlockEditor({
         // 컨테이너 자체에 포커스 → 바로 전체 선택
         if (activeEl === container) {
           e.preventDefault();
+          selectAllActiveRef.current = true;
           setSelectedBlocks(new Set(blocks.map(b => b.id)));
           return;
         }
@@ -1068,89 +1153,32 @@ export default function BlockEditor({
         } else {
           const text = activeEl.textContent || '';
           const sel = window.getSelection();
-          isFullySelected = text.length === 0 || (!!sel && !sel.isCollapsed && sel.toString().length >= text.length);
+          if (text.length === 0) {
+            isFullySelected = true;
+          } else if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+            try {
+              const range = sel.getRangeAt(0);
+              const elRange = document.createRange();
+              elRange.selectNodeContents(activeEl);
+              isFullySelected =
+                range.compareBoundaryPoints(Range.START_TO_START, elRange) <= 0
+                && range.compareBoundaryPoints(Range.END_TO_END, elRange) >= 0;
+            } catch (_) {
+              isFullySelected = false;
+            }
+          }
         }
 
         if (isFullySelected) {
           e.preventDefault();
           window.getSelection()?.removeAllRanges();
           activeEl.blur();
+          selectAllActiveRef.current = true;
           setSelectedBlocks(new Set(blocks.map(b => b.id)));
           return;
         }
         // 브라우저 기본 동작 (블록 내 전체 선택)
         return;
-      }
-
-      // --- 블록 선택 상태에서의 키보드 동작 ---
-      if (selectedBlocks.size > 0) {
-        const activeEl = document.activeElement;
-        const isInEditable = activeEl?.closest('[contenteditable="true"]') ||
-          activeEl instanceof HTMLInputElement ||
-          activeEl instanceof HTMLTextAreaElement;
-
-        if (!isInEditable) {
-          // Delete / Backspace
-          if (e.key === 'Delete' || e.key === 'Backspace') {
-            e.preventDefault();
-            handleDeleteSelected();
-            focusFirstBlock();
-            return;
-          }
-
-          // Cmd+X: 잘라내기
-          if ((e.metaKey || e.ctrlKey) && e.key === 'x') {
-            e.preventDefault();
-            navigator.clipboard.writeText(serializeSelectedBlocks());
-            handleDeleteSelected();
-            focusFirstBlock();
-            return;
-          }
-
-          // Cmd+C: 복사
-          if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-            e.preventDefault();
-            navigator.clipboard.writeText(serializeSelectedBlocks());
-            return;
-          }
-
-          // Enter: 선택 삭제
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleDeleteSelected();
-            focusFirstBlock();
-            return;
-          }
-
-          // 인쇄 가능 문자: 선택 삭제 후 입력
-          if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
-            e.preventDefault();
-            const newId = generateBlockId();
-            const typedChar = e.key;
-            setBlocks(prev => {
-              const firstIdx = prev.findIndex(b => selectedBlocks.has(b.id));
-              const filtered = prev.filter(b => !selectedBlocks.has(b.id));
-              const newBlock: ParagraphBlock = {
-                id: newId,
-                type: 'paragraph',
-                content: [{ text: typedChar }],
-              };
-              filtered.splice(Math.min(firstIdx, filtered.length), 0, newBlock);
-              return filtered;
-            });
-            setSelectedBlocks(new Set());
-            pendingFocusRef.current = { blockId: newId, position: 'end' };
-            return;
-          }
-
-          // Escape: 선택 해제
-          if (e.key === 'Escape') {
-            setSelectedBlocks(new Set());
-            return;
-          }
-
-          return; // 블록 선택 모드에서 다른 키는 무시
-        }
       }
 
       // 크로스 블록 텍스트 선택 삭제
@@ -1162,20 +1190,20 @@ export default function BlockEditor({
           return;
         }
       }
-
-      // Escape로 선택 해제 (에디터 내 포커스 상태)
-      if (e.key === 'Escape' && selectedBlocks.size > 0) {
-        setSelectedBlocks(new Set());
-      }
     };
 
     // beforeinput: 크로스 블록 선택 상태에서 입력 가로채기 + 컨테이너 직접 편집 방지
     const handleBeforeInput = (e: InputEvent) => {
       if (!container) return;
 
+      // 전체 선택 상태에서 모든 입력 차단 (keydown에서 처리)
+      if (selectAllActiveRef.current) {
+        e.preventDefault();
+        return;
+      }
+
       const crossSel = getCrossBlockSelection(blocks, container);
       if (crossSel) {
-        // 크로스 블록 선택 상태: 모든 입력을 커스텀 처리
         if ((e.inputType === 'insertText' || e.inputType === 'insertCompositionText') && !e.isComposing && e.data) {
           e.preventDefault();
           handleCrossBlockDelete(crossSel, e.data);
@@ -1183,28 +1211,27 @@ export default function BlockEditor({
           e.preventDefault();
           handleCrossBlockDelete(crossSel);
         } else {
-          e.preventDefault(); // 크로스 블록 선택 중 다른 입력 유형 차단
+          e.preventDefault();
         }
         return;
       }
 
-      // 크로스 블록 선택이 아닌데 컨테이너가 직접 타겟인 경우 차단
       if (e.target === container) {
         e.preventDefault();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
     if (container) {
       container.addEventListener('beforeinput', handleBeforeInput);
     }
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       if (container) {
         container.removeEventListener('beforeinput', handleBeforeInput);
       }
     };
-  }, [selectedBlocks, handleDeleteSelected, blocks, handleCrossBlockDelete, focusFirstBlock, serializeSelectedBlocks]);
+  }, [selectedBlocks, blocks, handleCrossBlockDelete]);
 
   // 크로스 블록 드래그 선택: 마우스로 블록 경계를 넘어가면 프로그래밍으로 Selection 생성
   useEffect(() => {
@@ -1441,9 +1468,18 @@ export default function BlockEditor({
           position={blockMenuPosition}
           onClose={() => setShowBlockMenu(false)}
           onSelect={handleAddBlock}
+          onImportFile={handleImportFile}
         />
       )}
 
+      {/* 파일 가져오기용 숨겨진 input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={getAcceptString()}
+        onChange={handleFileSelected}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 }

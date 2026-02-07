@@ -9,12 +9,13 @@
 - [x] Tab/Shift+Tab 들여쓰기
 - [x] Shift+Enter로 코드 블록 탈출 (새 본문 블록 생성)
 
-## 2. 마크다운/.docs/.ipynb 문서 import 추가
+## 2. 마크다운/.docx/.ipynb 문서 import 추가
 
-- [ ] 마크다운 파일 파싱 기능 구현
-- [ ] .docs 문서 import 기능 구현
-- [ ] .ipynb(Jupyter Notebook) import 기능 구현
-- [ ] 블록 변환 로직 추가
+- [x] 마크다운 파일 파싱 기능 구현 (remark 기반)
+- [x] .docx 문서 import 기능 구현 (mammoth 기반)
+- [x] .ipynb(Jupyter Notebook) import 기능 구현 (코드셀 → CodeBlock)
+- [x] 블록 변환 로직 추가
+- [x] + 메뉴에 "파일 가져오기" 옵션 추가
 
 ## 3. 사용자 입력 시 마크다운 기호 인식 및 블록 변환
 
@@ -39,6 +40,7 @@
 - [x] Cmd+A 선택 상태에서 Cmd+C 동작을 전체 블록 복사로 정의
 - [x] Cmd+A 이후 문자 입력 시 전체 교체, Enter 시 삭제 후 빈 블록 생성
 - [x] 삭제 후 첫 번째 블록에 자동 포커스
+- [ ] 본문 블록 텍스트 입력 중 Cmd+A → Delete가 블록 선택 후 동작과 동일하게 작동하도록 개선 (contentEditable 내부에서 전체 선택 감지 이슈)
 
 ## 6. 블록 뷰어 제공
 
