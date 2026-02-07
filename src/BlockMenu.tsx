@@ -12,12 +12,14 @@ import {
   MessageSquare,
   Minus,
   Code,
+  FileUp,
 } from 'lucide-react';
 
 interface BlockMenuProps {
   position: { x: number; y: number };
   onClose: () => void;
   onSelect: (type: Block['type']) => void;
+  onImportFile?: () => void;
 }
 
 interface MenuItem {
@@ -108,7 +110,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export default function BlockMenu({ position, onClose, onSelect }: BlockMenuProps) {
+export default function BlockMenu({ position, onClose, onSelect, onImportFile }: BlockMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -195,6 +197,26 @@ export default function BlockMenu({ position, onClose, onSelect }: BlockMenuProp
             </button>
           ))}
         </div>
+
+        {/* 파일 가져오기 */}
+        {onImportFile && (
+          <div className="py-1">
+            <p className="px-3 py-1 text-xs text-gray-400">가져오기</p>
+            <button
+              onClick={() => {
+                onImportFile();
+                onClose();
+              }}
+              className="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-gray-500"><FileUp size={20} /></div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-gray-900">파일 가져오기</p>
+                <p className="text-xs text-gray-500">.md, .docx, .ipynb</p>
+              </div>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
