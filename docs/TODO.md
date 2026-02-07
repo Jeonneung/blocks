@@ -44,7 +44,13 @@
 
 ## 6. 블록 뷰어 제공
 
-- [ ] 읽기 전용 `BlockViewer` 컴포넌트 구현 (contentEditable 없이 블록 데이터를 렌더링)
-- [ ] 모든 블록 타입에 대한 뷰어 렌더러 구현 (paragraph, heading, image, list, quote, divider 등)
-- [ ] 에디터 전용 UI 제거 (드래그 핸들, +/삭제 버튼, 블록 메뉴 등)
-- [ ] `BlockViewer`를 라이브러리 public API로 export
+- [x] 읽기 전용 `BlockViewer` 컴포넌트 구현 (contentEditable 없이 블록 데이터를 렌더링)
+- [x] 모든 블록 타입에 대한 뷰어 렌더러 구현 (paragraph, heading, image, image-gallery, link-card, link-embed, dialogue, divider, quote, list, code)
+- [x] 에디터 전용 UI 제거 (드래그 핸들, +/삭제 버튼, 블록 메뉴 등)
+- [x] `BlockViewer`를 라이브러리 public API로 export
+- [x] `renderTextNodes` 유틸리티 분리 및 export (TextNode[] → React 렌더링)
+- [x] Prism 테마를 에디터/뷰어 공유 유틸로 추출 (`src/utils/prismTheme.ts`)
+- [x] `CodeView` 신규 구현 (Prism.js 구문 강조, 읽기 전용)
+- [x] 순서 목록 실제 번호 계산 (에디터와 동일 로직)
+- [x] 이미지 컴포넌트를 `useOptionalEditorServices()` → `ImageComponent` || `DefaultImage`로 처리
+- [x] demo 앱에 BlockViewer 미리보기 추가

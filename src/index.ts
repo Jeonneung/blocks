@@ -1,6 +1,7 @@
 // Main components
 export { default as BlockEditor } from './BlockEditor';
 export { default as BlockMenu } from './BlockMenu';
+export { default as BlockViewer } from './viewer/BlockViewer';
 
 // Block editors
 export { default as TextBlockEditor } from './blocks/TextBlockEditor';
@@ -47,6 +48,9 @@ export type {
   Character,
   MarkdownShortcutConfig,
 } from './types/blocks';
+
+// Utilities
+export { renderTextNodes } from './utils/renderTextNodes';
 
 // Helper functions
 export {

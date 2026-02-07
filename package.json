@@ -1,6 +1,6 @@
 {
   "name": "@buildingbite/blocks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Block-based rich text editor for blogs",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

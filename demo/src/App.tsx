@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BlockEditor, EditorProvider, Block } from '@buildingbite/blocks'
+import { BlockEditor, BlockViewer, EditorProvider, Block } from '@buildingbite/blocks'
 
 function App() {
   const [blocks, setBlocks] = useState<Block[]>([])
@@ -37,6 +37,24 @@ function App() {
         <div style={{ marginTop: 16, fontSize: 13, color: '#999' }}>
           글자 수: {charCount} &middot; 블록 수: {blocks.length}
         </div>
+
+        {/* BlockViewer 미리보기 */}
+        {blocks.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+              BlockViewer (읽기 전용)
+            </h2>
+            <div style={{
+              border: '1px solid #e5e7eb',
+              borderRadius: 8,
+              padding: '16px 16px',
+              minHeight: 100,
+              background: '#fff',
+            }}>
+              <BlockViewer blocks={blocks} />
+            </div>
+          </div>
+        )}
 
         <details style={{ marginTop: 24 }}>
           <summary style={{ cursor: 'pointer', fontSize: 13, color: '#999' }}>
