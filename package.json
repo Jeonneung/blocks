@@ -29,9 +29,13 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "lucide-react": "^0.468.0",
-    "prismjs": "^1.30.0"
+    "mammoth": "^1.11.0",
+    "prismjs": "^1.30.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
+    "@types/mdast": "^4.0.4",
     "@types/prismjs": "^1.26.5",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",

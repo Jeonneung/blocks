@@ -56,3 +56,19 @@ export {
   generatePreviewFromBlocks,
   countBlocksCharacters,
 } from './types/blocks';
+
+// Importers
+export {
+  importFile,
+  importMarkdown,
+  importDocx,
+  importNotebook,
+  getFileType,
+  getAcceptString,
+} from './importers';
+
+export type {
+  ImportResult,
+  FileImporter,
+  SupportedFileType,
+} from './importers';
