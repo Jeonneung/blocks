@@ -10,7 +10,8 @@ export type BlockType =
   | 'divider'        // 구분선/구분기호
   | 'quote'          // 인용문
   | 'list'           // 목록
-  | 'code';          // 코드 블록
+  | 'code'           // 코드 블록
+  | 'table';         // 표
 
 // 텍스트 노드 (인라인 서식용)
 export interface TextNode {
@@ -133,6 +134,13 @@ export interface CodeBlock extends BaseBlock {
   language?: string;
 }
 
+// 표 블록
+export interface TableBlock extends BaseBlock {
+  type: 'table';
+  headers: string[];
+  rows: string[][];
+}
+
 // 블록 유니온 타입
 export type Block =
   | ParagraphBlock
@@ -145,7 +153,8 @@ export type Block =
   | DividerBlock
   | QuoteBlock
   | ListBlock
-  | CodeBlock;
+  | CodeBlock
+  | TableBlock;
 
 // 마크다운 단축키 설정 (개별 단축키 활성/비활성)
 export interface MarkdownShortcutConfig {

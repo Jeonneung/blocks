@@ -13,6 +13,7 @@ import {
   Minus,
   Code,
   FileUp,
+  Table,
 } from 'lucide-react';
 
 interface BlockMenuProps {
@@ -64,6 +65,13 @@ const menuItems: MenuItem[] = [
     icon: <Minus size={20} />,
     label: '구분선',
     description: '섹션 구분',
+    category: 'basic',
+  },
+  {
+    type: 'table',
+    icon: <Table size={20} />,
+    label: '표',
+    description: '표 (테이블)',
     category: 'basic',
   },
   {

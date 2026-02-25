@@ -12,6 +12,7 @@ import {
   QuoteBlock,
   ListBlock,
   CodeBlock,
+  TableBlock,
   TextNode,
   MarkdownShortcutConfig,
   generateBlockId,
@@ -26,6 +27,7 @@ import LinkEmbedEditor from './blocks/LinkEmbedEditor';
 import DialogueEditor from './blocks/DialogueEditor';
 import DividerEditor from './blocks/DividerEditor';
 import CodeBlockEditor from './blocks/CodeBlockEditor';
+import TableEditor from './blocks/TableEditor';
 import { importFile, getAcceptString } from './importers';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import {
@@ -184,6 +186,11 @@ function BlockItem({
       case 'divider':
         return (
           <DividerEditor block={block as DividerBlock} onUpdate={onUpdate} />
+        );
+
+      case 'table':
+        return (
+          <TableEditor block={block as TableBlock} onUpdate={onUpdate} />
         );
 
       case 'code':
@@ -389,6 +396,13 @@ export default function BlockEditor({
               return ((b as ParagraphBlock).content).map(n => n.text).join('');
             if (b.type === 'code') return (b as CodeBlock).code;
             if (b.type === 'divider') return '---';
+            if (b.type === 'table') {
+              const t = b as TableBlock;
+              const hdr = '| ' + t.headers.join(' | ') + ' |';
+              const sep = '| ' + t.headers.map(() => '---').join(' | ') + ' |';
+              const rows = t.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+              return [hdr, sep, rows].join('\n');
+            }
             return '';
           }).join('\n');
         navigator.clipboard.writeText(text).catch(() => {});
@@ -411,6 +425,13 @@ export default function BlockEditor({
               return ((b as ParagraphBlock).content).map(n => n.text).join('');
             if (b.type === 'code') return (b as CodeBlock).code;
             if (b.type === 'divider') return '---';
+            if (b.type === 'table') {
+              const t = b as TableBlock;
+              const hdr = '| ' + t.headers.join(' | ') + ' |';
+              const sep = '| ' + t.headers.map(() => '---').join(' | ') + ' |';
+              const rows = t.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+              return [hdr, sep, rows].join('\n');
+            }
             return '';
           }).join('\n');
         navigator.clipboard.writeText(text).catch(() => {});
@@ -611,9 +632,17 @@ export default function BlockEditor({
   const handleUpdateBlock = useCallback(
     (id: string, updates: Partial<Block>) => {
       setBlocks((prev) =>
-        prev.map((block) =>
-          block.id === id ? ({ ...block, ...updates } as Block) : block,
-        ),
+        prev.map((block) => {
+          if (block.id !== id) return block;
+          const updated = { ...block, ...updates };
+          // Strip undefined values to prevent Firestore errors
+          for (const key of Object.keys(updated)) {
+            if ((updated as Record<string, unknown>)[key] === undefined) {
+              delete (updated as Record<string, unknown>)[key];
+            }
+          }
+          return updated as Block;
+        }),
       );
     },
     [],
@@ -731,6 +760,14 @@ export default function BlockEditor({
           break;
         case 'divider':
           newBlock = { id, type: 'divider', variant: 'line' } as DividerBlock;
+          break;
+        case 'table':
+          newBlock = {
+            id,
+            type: 'table',
+            headers: ['', ''],
+            rows: [['', '']],
+          } as TableBlock;
           break;
         case 'image':
           newBlock = {

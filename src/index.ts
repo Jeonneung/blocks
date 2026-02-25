@@ -11,6 +11,7 @@ export { default as LinkEmbedEditor } from './blocks/LinkEmbedEditor';
 export { default as DialogueEditor } from './blocks/DialogueEditor';
 export { default as DividerEditor } from './blocks/DividerEditor';
 export { default as CodeBlockEditor } from './blocks/CodeBlockEditor';
+export { default as TableEditor } from './blocks/TableEditor';
 
 // Context and services
 export {
@@ -44,6 +45,7 @@ export type {
   QuoteBlock,
   ListBlock,
   CodeBlock,
+  TableBlock,
   BlockContent,
   Character,
   MarkdownShortcutConfig,

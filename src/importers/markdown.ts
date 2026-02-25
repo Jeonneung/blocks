@@ -1,5 +1,6 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 import type { Root, Content, PhrasingContent } from 'mdast';
 import { Block, ImportResult } from './types';
 import { generateBlockId, TextNode } from '../types/blocks';
@@ -142,6 +143,27 @@ function parseNode(node: Content): Block | Block[] | null {
         language: node.lang || undefined,
       };
 
+    case 'table': {
+      const tableNode = node as import('mdast').Table;
+      const [headerRow, ...dataRows] = tableNode.children;
+      const headers = headerRow
+        ? headerRow.children.map(cell =>
+            cell.children.map(c => ('value' in c ? c.value : '')).join('')
+          )
+        : [];
+      const rows = dataRows.map(row =>
+        row.children.map(cell =>
+          cell.children.map(c => ('value' in c ? c.value : '')).join('')
+        )
+      );
+      return {
+        id: generateBlockId(),
+        type: 'table',
+        headers,
+        rows: rows.length > 0 ? rows : [new Array(headers.length).fill('')],
+      };
+    }
+
     default:
       return null;
   }
@@ -152,7 +174,7 @@ export async function importMarkdown(file: File): Promise<ImportResult> {
   const errors: string[] = [];
 
   try {
-    const processor = unified().use(remarkParse);
+    const processor = unified().use(remarkParse).use(remarkGfm);
     const tree = processor.parse(text) as Root;
 
     const blocks: Block[] = [];

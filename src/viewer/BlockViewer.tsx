@@ -12,6 +12,7 @@ import {
   QuoteBlock,
   ListBlock,
   CodeBlock,
+  TableBlock,
 } from '../types/blocks';
 import ParagraphView from './blocks/ParagraphView';
 import HeadingView from './blocks/HeadingView';
@@ -24,6 +25,7 @@ import DividerView from './blocks/DividerView';
 import QuoteView from './blocks/QuoteView';
 import ListView from './blocks/ListView';
 import CodeView from './blocks/CodeView';
+import TableView from './blocks/TableView';
 
 interface BlockViewerProps {
   blocks: Block[];
@@ -94,6 +96,9 @@ function renderBlock(block: Block, blocks: Block[], index: number): React.ReactN
 
     case 'code':
       return <CodeView block={block as CodeBlock} />;
+
+    case 'table':
+      return <TableView block={block as TableBlock} />;
 
     default:
       console.warn('Unknown block type:', (block as any).type);
