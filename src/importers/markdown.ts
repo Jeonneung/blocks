@@ -151,14 +151,14 @@ function parseNode(node: Content): Block | Block[] | null {
       const headers = headerRow
         ? headerRow.children.map(cellToText)
         : [];
-      const rows = dataRows.map(row =>
-        row.children.map(cellToText)
-      );
+      const rows = dataRows.map(row => ({
+        cells: row.children.map(cellToText),
+      }));
       return {
         id: generateBlockId(),
         type: 'table',
         headers,
-        rows: rows.length > 0 ? rows : [new Array(headers.length).fill('')],
+        rows: rows.length > 0 ? rows : [{ cells: new Array(headers.length).fill('') }],
       };
     }
 

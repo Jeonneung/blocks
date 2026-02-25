@@ -400,7 +400,7 @@ export default function BlockEditor({
               const t = b as TableBlock;
               const hdr = '| ' + t.headers.join(' | ') + ' |';
               const sep = '| ' + t.headers.map(() => '---').join(' | ') + ' |';
-              const rows = t.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+              const rows = t.rows.map(r => '| ' + r.cells.join(' | ') + ' |').join('\n');
               return [hdr, sep, rows].join('\n');
             }
             return '';
@@ -429,7 +429,7 @@ export default function BlockEditor({
               const t = b as TableBlock;
               const hdr = '| ' + t.headers.join(' | ') + ' |';
               const sep = '| ' + t.headers.map(() => '---').join(' | ') + ' |';
-              const rows = t.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+              const rows = t.rows.map(r => '| ' + r.cells.join(' | ') + ' |').join('\n');
               return [hdr, sep, rows].join('\n');
             }
             return '';
@@ -778,7 +778,7 @@ export default function BlockEditor({
             id,
             type: 'table',
             headers: ['', ''],
-            rows: [['', '']],
+            rows: [{ cells: ['', ''] }],
           } as TableBlock;
           break;
         case 'image':

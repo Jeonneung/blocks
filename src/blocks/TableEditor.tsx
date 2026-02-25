@@ -17,13 +17,13 @@ export default function TableEditor({ block, onUpdate }: TableEditorProps) {
   }, [block.headers, onUpdate]);
 
   const updateCell = useCallback((rowIndex: number, colIndex: number, value: string) => {
-    const newRows = block.rows.map(row => [...row]);
-    newRows[rowIndex][colIndex] = value;
+    const newRows = block.rows.map(row => ({ cells: [...row.cells] }));
+    newRows[rowIndex].cells[colIndex] = value;
     onUpdate({ rows: newRows });
   }, [block.rows, onUpdate]);
 
   const addRow = useCallback(() => {
-    onUpdate({ rows: [...block.rows, new Array(colCount).fill('')] });
+    onUpdate({ rows: [...block.rows, { cells: new Array(colCount).fill('') }] });
   }, [block.rows, colCount, onUpdate]);
 
   const removeRow = useCallback((rowIndex: number) => {
@@ -34,7 +34,7 @@ export default function TableEditor({ block, onUpdate }: TableEditorProps) {
   const addColumn = useCallback(() => {
     onUpdate({
       headers: [...block.headers, ''],
-      rows: block.rows.map(row => [...row, '']),
+      rows: block.rows.map(row => ({ cells: [...row.cells, ''] })),
     });
   }, [block.headers, block.rows, onUpdate]);
 
@@ -42,7 +42,7 @@ export default function TableEditor({ block, onUpdate }: TableEditorProps) {
     if (colCount <= 1) return;
     onUpdate({
       headers: block.headers.filter((_, i) => i !== colIndex),
-      rows: block.rows.map(row => row.filter((_, i) => i !== colIndex)),
+      rows: block.rows.map(row => ({ cells: row.cells.filter((_, i) => i !== colIndex) })),
     });
   }, [block.headers, block.rows, colCount, onUpdate]);
 
@@ -56,14 +56,12 @@ export default function TableEditor({ block, onUpdate }: TableEditorProps) {
       e.preventDefault();
       const nextCol = colIndex + 1;
       if (nextCol < colCount) {
-        // Move to next column
         const selector = type === 'header'
           ? `[data-header-col="${nextCol}"]`
           : `[data-row="${rowIndex}"][data-col="${nextCol}"]`;
         const el = (e.currentTarget as HTMLElement).closest('.table-editor')?.querySelector(selector) as HTMLInputElement;
         el?.focus();
       } else if (type === 'header' && block.rows.length > 0) {
-        // Move to first cell of first row
         const el = (e.currentTarget as HTMLElement).closest('.table-editor')?.querySelector('[data-row="0"][data-col="0"]') as HTMLInputElement;
         el?.focus();
       } else if (type === 'cell') {
@@ -117,7 +115,7 @@ export default function TableEditor({ block, onUpdate }: TableEditorProps) {
         <tbody>
           {block.rows.map((row, rowIndex) => (
             <tr key={rowIndex} className="group/row">
-              {row.map((cell, colIndex) => (
+              {row.cells.map((cell, colIndex) => (
                 <td key={colIndex} className="border border-gray-300 p-0">
                   <input
                     type="text"

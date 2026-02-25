@@ -45,6 +45,7 @@ export type {
   QuoteBlock,
   ListBlock,
   CodeBlock,
+  TableRow,
   TableBlock,
   BlockContent,
   Character,

@@ -24,7 +24,7 @@ export default function TableView({ block }: TableViewProps) {
         <tbody>
           {block.rows.map((row, rowIndex) => (
             <tr key={rowIndex} className="even:bg-gray-50/50">
-              {row.map((cell, colIndex) => (
+              {row.cells.map((cell, colIndex) => (
                 <td key={colIndex} className="border border-gray-300 px-3 py-2">
                   {cell}
                 </td>

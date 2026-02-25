@@ -134,11 +134,16 @@ export interface CodeBlock extends BaseBlock {
   language?: string;
 }
 
+// 표 행
+export interface TableRow {
+  cells: string[];
+}
+
 // 표 블록
 export interface TableBlock extends BaseBlock {
   type: 'table';
   headers: string[];
-  rows: string[][];
+  rows: TableRow[];
 }
 
 // 블록 유니온 타입
