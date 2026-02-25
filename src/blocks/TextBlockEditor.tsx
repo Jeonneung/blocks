@@ -46,13 +46,52 @@ function textNodesToHtml(nodes: TextNode[]): string {
   }).join('');
 }
 
-// HTML을 TextNode 배열로 변환 (단순 버전)
+// HTML을 TextNode 배열로 변환 (서식 보존)
 function htmlToTextNodes(html: string): TextNode[] {
-  // 단순히 텍스트만 추출 (서식 정보는 나중에 개선)
   const div = document.createElement('div');
   div.innerHTML = html;
-  const text = div.textContent || '';
-  return [{ text }];
+  const result: TextNode[] = [];
+
+  function walk(node: Node, fmt: Omit<TextNode, 'text'>) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      if (text) result.push({ text, ...fmt });
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    const next = { ...fmt };
+    if (tag === 'strong' || tag === 'b') next.bold = true;
+    if (tag === 'em' || tag === 'i') next.italic = true;
+    if (tag === 'u') next.underline = true;
+    if (tag === 's' || tag === 'del' || tag === 'strike') next.strikethrough = true;
+    if (tag === 'a') next.link = el.getAttribute('href') || undefined;
+    for (const child of Array.from(node.childNodes)) {
+      walk(child, next);
+    }
+  }
+
+  walk(div, {});
+
+  // Clean: remove false-y format flags
+  for (const n of result) {
+    if (!n.bold) delete n.bold;
+    if (!n.italic) delete n.italic;
+    if (!n.underline) delete n.underline;
+    if (!n.strikethrough) delete n.strikethrough;
+    if (!n.link) delete n.link;
+  }
+
+  return result.length > 0 ? result : [{ text: '' }];
+}
+
+// Range에서 HTML 문자열 추출
+function rangeToHtml(range: Range): string {
+  const frag = range.cloneContents();
+  const div = document.createElement('div');
+  div.appendChild(frag);
+  return div.innerHTML;
 }
 
 export default function TextBlockEditor({ block, onUpdate, onMergeWithPrevious, onSplitBlock, onPasteBlocks, onDeleteEmptyBlock, onFocusPrevious, onFocusNext, isOnlyBlock, onConvertBlock, markdownShortcuts, listOrderIndex }: TextBlockEditorProps) {
@@ -414,18 +453,15 @@ export default function TextBlockEditor({ block, onUpdate, onMergeWithPrevious, 
       afterRange.setStart(range.endContainer, range.endOffset);
       afterRange.setEnd(editor, editor.childNodes.length);
 
-      const beforeText = beforeRange.toString();
-      const afterText = afterRange.toString();
+      const beforeNodes = htmlToTextNodes(rangeToHtml(beforeRange));
+      const afterNodes = htmlToTextNodes(rangeToHtml(afterRange));
 
-      // 현재 블록의 DOM을 직접 업데이트 (beforeText만 남김)
-      const beforeHtml = textNodesToHtml([{ text: beforeText }]);
+      // 현재 블록의 DOM을 직접 업데이트 (beforeNodes만 남김)
+      const beforeHtml = textNodesToHtml(beforeNodes);
       editor.innerHTML = beforeHtml;
       lastContentRef.current = beforeHtml;
 
-      onSplitBlock(
-        [{ text: beforeText }],
-        [{ text: afterText }]
-      );
+      onSplitBlock(beforeNodes, afterNodes);
     } else if (e.key === 'Backspace') {
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) return;

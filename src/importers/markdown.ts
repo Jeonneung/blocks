@@ -146,15 +146,13 @@ function parseNode(node: Content): Block | Block[] | null {
     case 'table': {
       const tableNode = node as import('mdast').Table;
       const [headerRow, ...dataRows] = tableNode.children;
+      const cellToText = (cell: import('mdast').TableCell) =>
+        parseInlineContent(cell.children).map(n => n.text).join('');
       const headers = headerRow
-        ? headerRow.children.map(cell =>
-            cell.children.map(c => ('value' in c ? c.value : '')).join('')
-          )
+        ? headerRow.children.map(cellToText)
         : [];
       const rows = dataRows.map(row =>
-        row.children.map(cell =>
-          cell.children.map(c => ('value' in c ? c.value : '')).join('')
-        )
+        row.children.map(cellToText)
       );
       return {
         id: generateBlockId(),

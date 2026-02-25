@@ -622,7 +622,19 @@ export default function BlockEditor({
 
   // 블록 변경시 콜백 호출
   useEffect(() => {
-    onChange(blocks);
+    // Strip undefined values recursively to prevent Firestore errors
+    const clean = (obj: unknown): unknown => {
+      if (Array.isArray(obj)) return obj.map(clean);
+      if (obj !== null && typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+          if (v !== undefined) result[k] = clean(v);
+        }
+        return result;
+      }
+      return obj;
+    };
+    onChange(clean(blocks) as Block[]);
     if (onCharCountChange) {
       onCharCountChange(countBlocksCharacters(blocks));
     }
